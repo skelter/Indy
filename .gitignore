@@ -1,3 +1,7 @@
 Lib/Core/*.dcu
 Lib/Protocols/*.dcu
 Lib/System/*.dcu
+*.local
+*.dsk
+*.~dsk
+*~
