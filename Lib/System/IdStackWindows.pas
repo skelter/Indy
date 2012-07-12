@@ -316,7 +316,7 @@ var
 implementation
 
 uses
-  IdResourceStrings, IdWship6;
+  IdIDN, IdResourceStrings, IdWship6;
 
 {$IFNDEF WINCE}
 type
@@ -339,6 +339,7 @@ begin
     try
       InitializeWinSock;
       IdWship6.InitLibrary;
+      IdIDN.InitIDNLibrary;
     except
       on E: Exception do begin
         raise EIdStackInitializationFailed.Create(E.Message);
@@ -453,7 +454,7 @@ var
   LTemp: AnsiString;
   {$ELSE}
     {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp: WideString;
+  LTemp: TIdUnicodeString;
     {$ENDIF}
   {$ENDIF}
 begin
@@ -499,7 +500,7 @@ begin
   LAddrInfo := nil;
 
   {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp := WideString(AAddress); // explicit convert to Unicode
+  LTemp := TIdUnicodeString(AAddress); // explicit convert to Unicode
   {$ENDIF}
 
   RetVal := getaddrinfo(
@@ -802,7 +803,7 @@ var
   LTemp: AnsiString;
   {$ELSE}
     {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp: WideString;
+  LTemp: TIdUnicodeString;
     {$ENDIF}
   {$ENDIF}
 begin
@@ -845,7 +846,7 @@ begin
   LAddrList := nil;
 
   {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp := WideString(LHostName); // explicit convert to Unicode
+  LTemp := TIdUnicodeString(LHostName); // explicit convert to Unicode
   {$ENDIF}
 
   RetVal := getaddrinfo(
@@ -1167,13 +1168,7 @@ var
   Hints: TAddrInfo;
   {$ENDIF}
   RetVal: Integer;
-  {$IFDEF STRING_IS_UNICODE}
-  LTemp: AnsiString;
-  {$ELSE}
-    {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp: WideString;
-    {$ENDIF}
-  {$ENDIF}
+  LTemp: string;
 begin
   //GetHostByName and GetHostByAddr may not be availble in future versions
   //of Windows CE.  Those functions are depreciated in favor of the new
@@ -1187,11 +1182,13 @@ begin
     case AIPVersion of
       Id_IPv4:
         begin
-          {$IFDEF STRING_IS_UNICODE}
-          LTemp := AnsiString(AHostName); // explicit convert to Ansi
-          {$ENDIF}
           LHost := IdWinsock2.gethostbyname(
-            PAnsiChar({$IFDEF STRING_IS_UNICODE}LTemp{$ELSE}AHostName{$ENDIF}));
+            {$IFDEF STRING_IS_UNICODE}
+            PAnsiChar(AnsiString(AHostName)) // explicit convert to Ansi
+            {$ELSE}
+            PAnsiChar(AHostName)
+            {$ENDIF}
+            );
           if LHost = nil then begin
             RaiseLastSocketError;
           end;
@@ -1224,12 +1221,23 @@ begin
   Hints.ai_socktype := SOCK_STREAM;
   LAddrInfo := nil;
 
-  {$IFDEF UNICODE_BUT_STRING_IS_ANSI}
-  LTemp := WideString(AHostName); // explicit convert to Unicode
-  {$ENDIF}
-
+  if UseIDNAPI then begin
+    LTemp := IDNToPunnyCode(
+      {$IFDEF STRING_IS_UNICODE}
+      AHostName
+      {$ELSE}
+      TIdUnicodeString(AHostName) // explicit convert to Unicode
+      {$ENDIF}
+    );
+  end else begin
+    LTemp := AHostName;
+  end;
   RetVal := getaddrinfo(
-    {$IFDEF UNICODE_BUT_STRING_IS_ANSI}PWideChar(LTemp){$ELSE}PChar(AHostName){$ENDIF},
+    {$IFDEF UNICODE}
+    PIdWideChar({$IFDEF STRING_IS_UNICODE}LTemp{$ELSE}TIdUnicodeString(LTemp){$ENDIF})
+    {$ELSE}
+    PAnsiChar({$IFDEF STRING_IS_ANSI}LTemp{$ELSE}AnsiString(LTemp){$ENDIF})
+    {$ENDIF},
     nil, @Hints, @LAddrInfo);
   if RetVal <> 0 then begin
     RaiseSocketError(gaiErrorToWsaError(RetVal));

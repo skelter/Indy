@@ -274,6 +274,9 @@ uses
   Posix.SysSelect,
   Posix.SysTime,
   {$ENDIF}
+  {$IFDEF VCL_XE3_OR_ABOVE}
+  System.SyncObjs,
+  {$ENDIF}
   IdResourceStringsCore;
 
 class procedure TIdThread.WaitAllThreadsTerminated(AMSec: Integer = IdWaitAllThreadsTerminatedCount);
@@ -352,8 +355,8 @@ begin
         Include(FOptions, itoReqCleanup);
         try
           try
-            BeforeRun;
             try
+              BeforeRun;
               if Loop then begin
                 while not Stopped do begin
                   try

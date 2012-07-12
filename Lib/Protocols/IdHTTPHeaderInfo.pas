@@ -266,7 +266,6 @@ type
     FProxyConnection: string;
     FProxyAuthenticate: TIdHeaderList;
     FWWWAuthenticate: TIdHeaderList;
-    FMetaHTTPEquiv : TIdHeaderList;
     //
     procedure SetProxyAuthenticate(const Value: TIdHeaderList);
     procedure SetWWWAuthenticate(const Value: TIdHeaderList);
@@ -1123,17 +1122,16 @@ end;
 constructor TIdResponseHeaderInfo.Create(AOwner: TPersistent);
 begin
   inherited Create(AOwner);
-  FContentType := 'text/html';  {do not localize}
-  FCharSet := 'ISO-8859-1';  {do not localize}
+  // RLebeau 5/15/2012: don't set any default ContentType, make the user set it...
+  FContentType := '';
+  FCharSet := '';
   FWWWAuthenticate := TIdHeaderList.Create(QuoteHTTP);
   FProxyAuthenticate := TIdHeaderList.Create(QuoteHTTP);
-  FMetaHTTPEquiv := TIdHeaderList.Create(QuoteHTTP);
   FAcceptRanges := '';
 end;
 
 destructor TIdResponseHeaderInfo.Destroy;
 begin
-  FreeAndNil(FMetaHTTPEquiv);
   FreeAndNil(FWWWAuthenticate);
   FreeAndNil(FProxyAuthenticate);
   inherited Destroy;
@@ -1205,9 +1203,9 @@ procedure TIdResponseHeaderInfo.Clear;
 begin
   inherited Clear;
 
-  // S.G. 20/4/2003: Default to text/HTML
-  FContentType := 'text/html';  {do not localize}
-  FCharSet := 'ISO-8859-1';  {do not localize}
+  // RLebeau 5/15/2012: don't set any default ContentType, make the user set it...
+  FContentType := '';
+  FCharSet := '';
 
   FLocation := '';
   FServer := '';
@@ -1233,7 +1231,7 @@ end;
 
 procedure TIdMetaHTTPEquiv.ProcessMetaHTTPEquiv(AStream: TStream);
 begin
-  ParseMetaHTTPEquiv(AStream, RawHeaders );
+  ParseMetaHTTPEquiv(AStream, RawHeaders);
   if FRawHeaders.Count > 0 then begin
     ProcessHeaders;
   end;
